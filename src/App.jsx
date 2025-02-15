@@ -15,7 +15,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  TextField,
   ListItemAvatar,
   Avatar,
   AppBar,
@@ -26,13 +25,10 @@ import {
 } from '@mui/material';
 import {
   Movie as MovieIcon,
-  Person as PersonIcon,
-  Group as GroupIcon,
-  Mood as MoodIcon,
-  MoodBad as MoodBadIcon,
-  SentimentDissatisfied as SentimentDissatisfiedIcon,
-  SentimentSatisfied as SentimentSatisfiedIcon,
   Language as LanguageIcon,
+  EmojiEmotions as ComedyIcon, // Komediya uchun ikonka
+  Group as GroupIcon, // Birga ko'rish uchun ikonka
+  LocalBar as PartyIcon, // Zavq uchun ikonka
 } from '@mui/icons-material';
 
 // Tarjimalar JSON fayli
@@ -40,15 +36,33 @@ const translations = {
   uz: {
     appTitle: "VibeLy",
     appSubtitle: "Kayfiyatingizga mos filmlarni toping!",
-    question1: "Hozir yolg‘iz filmsizmi yoki kim bilandir birga ko‘rmoqchimisiz?",
-    question2: "Qaysi janrdagi filmlarni ko'proq yoqtirasiz? (Masalan: Jangari, romantik, komediya, fantastika, qo'rqinchli, dramatik, ilmiy-fantastik, tarixiy, va boshqalar)",
-    question3: "Bugun qanday kun o‘tdi: quvnoq, stressli, zerikarli yoki juda band?",
+    question1: "Qaysi janrdagi filmlarni ko‘rishni yoqtirasiz?",
+    question2: "Filmni yolg‘iz tomosha qilishni yoqtirasizmi yoki kim bilandir birga?",
+    question3: "Hozir o‘zingizni qanday his qilyapsiz?",
+    question4: "Bugun kuningiz qanday o‘tdi?",
+    question5: "Bugun ko‘proq yolg‘izlik yoqadimi yoki samimiy insonlar bilan birga bo‘lish?",
+    question6: "O‘zingizni qanday energiya bilan to‘ldirmoqchisiz?",
+    optionFantasy: "Fantastika",
+    optionDrama: "Drama",
+    optionComedy: "Komediya",
+    optionThriller: "Triller",
+    optionRomance: "Romantika",
+    optionHistorical: "Tarixiy",
+    optionHorror: "Qo‘rqinchli film",
     optionAlone: "Yolg‘iz",
     optionTogether: "Birga",
-    optionHappy: "Quvnoq",
-    optionStressed: "Stressli",
-    optionBored: "Zerikarli",
-    optionBusy: "Juda band",
+    optionCalm: "Xotirjam",
+    optionExcited: "Hayajonlangan",
+    optionBored: "Zerikkan",
+    optionSad: "Ma’yus",
+    optionGood: "Yaxshi",
+    optionAverage: "O‘rtacha",
+    optionHard: "Og‘ir",
+    optionLoneliness: "Yolg‘izlik",
+    optionCompany: "Samimiy insonlar bilan birga bo‘lish",
+    optionLove: "Sevgi",
+    optionAdventure: "Sarguzasht",
+    optionWonder: "Hayrat",
     buttonBack: "Orqaga",
     buttonNext: "Keyingi",
     buttonGetRecommendations: "Tavsiyalarni Olish",
@@ -58,15 +72,33 @@ const translations = {
   ru: {
     appTitle: "VibeLy",
     appSubtitle: "Найдите фильмы по вашему настроению!",
-    question1: "Сейчас вы хотите смотреть фильм один или с кем-то?",
-    question2: "Какие жанры фильмов вы предпочитаете? (Например: Боевик, романтический, комедия, фантастика, ужасы, драма, научная фантастика, исторический и другие)",
-    question3: "Как прошел ваш день: радостный, стрессовый, скучный или очень занятой?",
+    question1: "Какие жанры фильмов вы предпочитаете?",
+    question2: "Вы хотите смотреть фильм один или с кем-то?",
+    question3: "Как вы себя чувствуете сейчас?",
+    question4: "Как прошел ваш день?",
+    question5: "Сегодня вы предпочитаете одиночество или общение с близкими?",
+    question6: "Какой энергией вы хотите наполниться?",
+    optionFantasy: "Фантастика",
+    optionDrama: "Драма",
+    optionComedy: "Комедия",
+    optionThriller: "Триллер",
+    optionRomance: "Романтика",
+    optionHistorical: "Исторический",
+    optionHorror: "Ужасы",
     optionAlone: "Один",
     optionTogether: "Вместе",
-    optionHappy: "Радостный",
-    optionStressed: "Стрессовый",
-    optionBored: "Скучный",
-    optionBusy: "Очень занятой",
+    optionCalm: "Спокойный",
+    optionExcited: "Возбужденный",
+    optionBored: "Скучающий",
+    optionSad: "Грустный",
+    optionGood: "Хороший",
+    optionAverage: "Средний",
+    optionHard: "Тяжелый",
+    optionLoneliness: "Одиночество",
+    optionCompany: "Общение с близкими",
+    optionLove: "Любовь",
+    optionAdventure: "Приключение",
+    optionWonder: "Удивление",
     buttonBack: "Назад",
     buttonNext: "Далее",
     buttonGetRecommendations: "Получить рекомендации",
@@ -76,15 +108,33 @@ const translations = {
   en: {
     appTitle: "VibeLy",
     appSubtitle: "Find movies that match your mood!",
-    question1: "Are you watching alone or with someone?",
-    question2: "Which movie genres do you prefer? (For example: Action, romantic, comedy, fantasy, horror, drama, sci-fi, historical, and others)",
-    question3: "How was your day: happy, stressful, boring, or very busy?",
+    question1: "Which movie genres do you prefer?",
+    question2: "Do you prefer watching movies alone or with someone?",
+    question3: "How are you feeling right now?",
+    question4: "How was your day?",
+    question5: "Do you prefer loneliness or being with close people today?",
+    question6: "What kind of energy do you want to fill yourself with?",
+    optionFantasy: "Fantasy",
+    optionDrama: "Drama",
+    optionComedy: "Comedy",
+    optionThriller: "Thriller",
+    optionRomance: "Romance",
+    optionHistorical: "Historical",
+    optionHorror: "Horror",
     optionAlone: "Alone",
     optionTogether: "Together",
-    optionHappy: "Happy",
-    optionStressed: "Stressful",
-    optionBored: "Boring",
-    optionBusy: "Very busy",
+    optionCalm: "Calm",
+    optionExcited: "Excited",
+    optionBored: "Bored",
+    optionSad: "Sad",
+    optionGood: "Good",
+    optionAverage: "Average",
+    optionHard: "Hard",
+    optionLoneliness: "Loneliness",
+    optionCompany: "Being with close people",
+    optionLove: "Love",
+    optionAdventure: "Adventure",
+    optionWonder: "Wonder",
     buttonBack: "Back",
     buttonNext: "Next",
     buttonGetRecommendations: "Get Recommendations",
@@ -99,12 +149,15 @@ const API_BASE_URL = 'https://api.together.xyz/v1';
 function App() {
   const [response, setResponse] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [watchingPreference, setWatchingPreference] = useState('');
   const [genrePreference, setGenrePreference] = useState('');
+  const [watchingPreference, setWatchingPreference] = useState('');
+  const [mood, setMood] = useState('');
   const [dayType, setDayType] = useState('');
+  const [socialPreference, setSocialPreference] = useState('');
+  const [energyPreference, setEnergyPreference] = useState('');
   const [step, setStep] = useState(1);
   const [language, setLanguage] = useState('uz');
-  const [anchorEl, setAnchorEl] = useState(null); // Til tanlash menyusi uchun
+  const [anchorEl, setAnchorEl] = useState(null);
 
   const handleLanguageMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -123,39 +176,82 @@ function App() {
     {
       text: translations[language].question1,
       options: [
-        { value: "yolg'iz", label: translations[language].optionAlone, icon: <PersonIcon fontSize="large" /> },
-        { value: "birga", label: translations[language].optionTogether, icon: <GroupIcon fontSize="large" /> },
+        { value: "fantasy", label: translations[language].optionFantasy },
+        { value: "drama", label: translations[language].optionDrama },
+        { value: "comedy", label: translations[language].optionComedy },
+        { value: "thriller", label: translations[language].optionThriller },
+        { value: "romance", label: translations[language].optionRomance },
+        { value: "historical", label: translations[language].optionHistorical },
+        { value: "horror", label: translations[language].optionHorror },
       ],
     },
     {
       text: translations[language].question2,
-      options: null,
+      options: [
+        { value: "alone", label: translations[language].optionAlone },
+        { value: "together", label: translations[language].optionTogether },
+      ],
     },
     {
       text: translations[language].question3,
       options: [
-        { value: "quvnoq", label: translations[language].optionHappy, icon: <MoodIcon fontSize="large" /> },
-        { value: "stressli", label: translations[language].optionStressed, icon: <MoodBadIcon fontSize="large" /> },
-        { value: "zerikarli", label: translations[language].optionBored, icon: <SentimentDissatisfiedIcon fontSize="large" /> },
-        { value: "juda band", label: translations[language].optionBusy, icon: <SentimentSatisfiedIcon fontSize="large" /> },
+        { value: "calm", label: translations[language].optionCalm },
+        { value: "excited", label: translations[language].optionExcited },
+        { value: "bored", label: translations[language].optionBored },
+        { value: "sad", label: translations[language].optionSad },
+      ],
+    },
+    {
+      text: translations[language].question4,
+      options: [
+        { value: "good", label: translations[language].optionGood },
+        { value: "average", label: translations[language].optionAverage },
+        { value: "hard", label: translations[language].optionHard },
+      ],
+    },
+    {
+      text: translations[language].question5,
+      options: [
+        { value: "loneliness", label: translations[language].optionLoneliness },
+        { value: "company", label: translations[language].optionCompany },
+      ],
+    },
+    {
+      text: translations[language].question6,
+      options: [
+        { value: "love", label: translations[language].optionLove },
+        { value: "adventure", label: translations[language].optionAdventure },
+        { value: "wonder", label: translations[language].optionWonder },
       ],
     },
   ];
 
   const handleNext = () => {
-    if (step === 1 && !watchingPreference) {
+    if (step === 1 && !genrePreference) {
       alert(translations[language].errorMessage + 'Iltimos, birinchi savolga javob bering!');
       return;
     }
-    if (step === 2 && !genrePreference) {
+    if (step === 2 && !watchingPreference) {
       alert(translations[language].errorMessage + 'Iltimos, ikkinchi savolga javob bering!');
       return;
     }
-    if (step === 3 && !dayType) {
+    if (step === 3 && !mood) {
       alert(translations[language].errorMessage + 'Iltimos, uchinchi savolga javob bering!');
       return;
     }
-    if (step < 3) setStep(step + 1);
+    if (step === 4 && !dayType) {
+      alert(translations[language].errorMessage + 'Iltimos, to‘rtinchi savolga javob bering!');
+      return;
+    }
+    if (step === 5 && !socialPreference) {
+      alert(translations[language].errorMessage + 'Iltimos, beshinchi savolga javob bering!');
+      return;
+    }
+    if (step === 6 && !energyPreference) {
+      alert(translations[language].errorMessage + 'Iltimos, oltinchi savolga javob bering!');
+      return;
+    }
+    if (step < 6) setStep(step + 1);
   };
 
   const handleBack = () => {
@@ -163,14 +259,14 @@ function App() {
   };
 
   const generateRecommendations = async () => {
-    if (!watchingPreference.trim() || !genrePreference.trim() || !dayType.trim()) {
+    if (!genrePreference || !watchingPreference || !mood || !dayType || !socialPreference || !energyPreference) {
       alert(translations[language].errorMessage + 'Iltimos, barcha savollarga javob bering!');
       return;
     }
 
     setLoading(true);
     try {
-      const prompt = `Foydalanuvchi hozir ${watchingPreference} ko'rmoqchi. U ${genrePreference} janridagi filmlarni yoqtiradi. Bugun uning kuni ${dayType} o'tdi. Uning kayfiyatiga mos 3 ta film tavsiya qiling. Iltimos, har bir film uchun quyidagi ma'lumotlarni aniq ko'rsating: 1. Film nomi, 2. Janri, 3. Qisqa tavsifi, 4. Film rasmi (URL), 5. Film havolasi (URL). Javobni o'zbek tilida bering.`;
+      const prompt = `Foydalanuvchi ${genrePreference} janridagi filmlarni yoqtiradi. U ${watchingPreference} tomosha qilishni afzal ko‘radi. Hozir u ${mood} his qilmoqda. Bugun uning kuni ${dayType} o‘tdi. U ${socialPreference}ni afzal ko‘radi va ${energyPreference} bilan to‘lishni xohlaydi. Uning kayfiyatiga mos 3 ta film tavsiya qiling. Iltimos, har bir film uchun quyidagi ma'lumotlarni aniq ko'rsating: 1. Film nomi, 2. Film haqida qisqacha ma'lumot. Javobni ${language} tilida bering.`;
 
       const response = await axios.post(`${API_BASE_URL}/chat/completions`, {
         model: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
@@ -194,10 +290,9 @@ function App() {
         .filter(line => line.trim() !== '')
         .map(line => line.replace(/^\d+\.\s*/, '').trim());
 
-      // Tavsiyalarni obyekt shaklida saqlash
       const formattedRecommendations = recommendations.map((item) => {
-        const [name, genre, description, imageUrl, link] = item.split('\n');
-        return { name, genre, description, imageUrl, link };
+        const [name, description] = item.split('\n');
+        return { name, description };
       });
 
       setResponse(formattedRecommendations);
@@ -217,56 +312,38 @@ function App() {
         <FormLabel component="legend" sx={{ color: 'white', mb: 2, fontSize: '1.2rem', fontWeight: 'bold' }}>
           {question.text}
         </FormLabel>
-        {question.options ? (
-          <RadioGroup
-            value={step === 1 ? watchingPreference : step === 3 ? dayType : ''}
-            onChange={(e) => {
-              if (step === 1) setWatchingPreference(e.target.value);
-              else if (step === 3) setDayType(e.target.value);
-            }}
-            sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: 2 }}
-          >
-            {question.options.map((option, index) => (
-              <FormControlLabel
-                key={index}
-                value={option.value}
-                control={<Radio sx={{ display: 'none' }} />}
-                label={
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      p: 2,
-                      border: '2px solid',
-                      borderColor: (step === 1 ? watchingPreference === option.value : step === 3 ? dayType === option.value : false) ? 'primary.main' : 'grey.500',
-                      borderRadius: 2,
-                      cursor: 'pointer',
-                      bgcolor: (step === 1 ? watchingPreference === option.value : step === 3 ? dayType === option.value : false) ? 'primary.dark' : 'background.paper',
-                      color: (step === 1 ? watchingPreference === option.value : step === 3 ? dayType === option.value : false) ? 'white' : 'grey.500',
-                      '&:hover': {
-                        bgcolor: 'primary.dark',
-                        color: 'white',
-                      },
-                    }}
-                  >
-                    {option.icon}
-                    <Typography sx={{ mt: 1 }}>{option.label}</Typography>
-                  </Box>
-                }
-              />
-            ))}
-          </RadioGroup>
-        ) : (
-          <TextField
-            value={genrePreference}
-            onChange={(e) => setGenrePreference(e.target.value)}
-            fullWidth
-            variant="outlined"
-            sx={{ bgcolor: 'white', borderRadius: 1 }}
-            placeholder={translations[language].question2}
-          />
-        )}
+        <RadioGroup
+          value={
+            step === 1 ? genrePreference :
+            step === 2 ? watchingPreference :
+            step === 3 ? mood :
+            step === 4 ? dayType :
+            step === 5 ? socialPreference :
+            step === 6 ? energyPreference : ''
+          }
+          onChange={(e) => {
+            if (step === 1) setGenrePreference(e.target.value);
+            else if (step === 2) setWatchingPreference(e.target.value);
+            else if (step === 3) setMood(e.target.value);
+            else if (step === 4) setDayType(e.target.value);
+            else if (step === 5) setSocialPreference(e.target.value);
+            else if (step === 6) setEnergyPreference(e.target.value);
+          }}
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+        >
+          {question.options.map((option, index) => (
+            <FormControlLabel
+              key={index}
+              value={option.value}
+              control={<Radio sx={{ color: 'white' }} />}
+              label={
+                <Typography sx={{ color: 'white' }}>
+                  {option.label}
+                </Typography>
+              }
+            />
+          ))}
+        </RadioGroup>
       </FormControl>
     );
   };
@@ -276,15 +353,13 @@ function App() {
       {/* Navbar */}
       <AppBar position="static" sx={{ bgcolor: '#1B1B1B' }}>
         <Toolbar>
-          {/* Chap tomonda logo va loyha nomi */}
           <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-            <MovieIcon sx={{ fontSize: 40, color: 'write', mr: 2 }} />
+            <MovieIcon sx={{ fontSize: 40, color: 'white', mr: 2 }} />
             <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: 'white' }}>
               {translations[language].appTitle}
             </Typography>
           </Box>
 
-          {/* O'ng tomonda til tanlash */}
           <IconButton
             size="large"
             edge="end"
@@ -317,12 +392,12 @@ function App() {
 
           {renderStepContent()}
 
-          <Box  sx={{ display: 'flex', justifyContent: 'space-between', mt: 5 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 5 }}>
             <Button onClick={handleBack} disabled={step === 1} variant="outlined" sx={{ color: 'white', borderColor: '#1565C0' }}>
               {translations[language].buttonBack}
             </Button>
-            {step < 3 ? (
-              <Button onClick={handleNext} variant="contained" disabled={!watchingPreference && step === 1 || !genrePreference && step === 2}>
+            {step < 6 ? (
+              <Button onClick={handleNext} variant="contained">
                 {translations[language].buttonNext}
               </Button>
             ) : (
@@ -334,30 +409,27 @@ function App() {
 
           {response.length > 0 && (
             <Box sx={{ mt: 4, p: 3, bgcolor: '#1B1B1B', borderRadius: 2 }}>
-              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: 'white ' }}>
+              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
                 {translations[language].recommendationsTitle}
               </Typography>
               <List>
                 {response.map((item, index) => (
-                  <ListItem  key={index} sx={{ borderBottom: '1px solid #ddd', py: 2 }}>
+                  <ListItem key={index} sx={{ borderBottom: '1px solid #ddd', py: 2 }}>
                     <ListItemAvatar>
-                      <Avatar src={item.imageUrl} alt={item.name} />
+                      <Avatar>
+                        {item.genre === "comedy" ? <ComedyIcon /> : <MovieIcon />}
+                      </Avatar>
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ color: 'white', textDecoration: 'none' }}>
-                          {item.name}
-                        </a>
+                        <Typography sx={{ color: 'white', fontWeight: 'bold' }}>
+                          {item.name.replace(/\*\*/g, '')} {/* ** belgilarini olib tashlash */}
+                        </Typography>
                       }
                       secondary={
-                        <>
-                          <Typography  variant="body2" color="text.secondary">
-                            {item.genre}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {item.description}
-                          </Typography>
-                        </>
+                        <Typography variant="body2" color="text.secondary">
+                          {item.description}
+                        </Typography>
                       }
                     />
                   </ListItem>
