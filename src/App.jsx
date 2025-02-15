@@ -22,13 +22,15 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   Movie as MovieIcon,
   Language as LanguageIcon,
-  EmojiEmotions as ComedyIcon, // Komediya uchun ikonka
-  Group as GroupIcon, // Birga ko'rish uchun ikonka
-  LocalBar as PartyIcon, // Zavq uchun ikonka
+  EmojiEmotions as ComedyIcon,
+  Group as GroupIcon,
+  LocalBar as PartyIcon,
 } from '@mui/icons-material';
 
 // Tarjimalar JSON fayli
@@ -158,6 +160,9 @@ function App() {
   const [step, setStep] = useState(1);
   const [language, setLanguage] = useState('uz');
   const [anchorEl, setAnchorEl] = useState(null);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleLanguageMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -309,7 +314,7 @@ function App() {
 
     return (
       <FormControl component="fieldset" sx={{ mb: 3, width: '100%' }}>
-        <FormLabel component="legend" sx={{ color: 'white', mb: 2, fontSize: '1.2rem', fontWeight: 'bold' }}>
+        <FormLabel component="legend" sx={{ color: 'white', mb: 2, fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 'bold' }}>
           {question.text}
         </FormLabel>
         <RadioGroup
@@ -337,7 +342,7 @@ function App() {
               value={option.value}
               control={<Radio sx={{ color: 'white' }} />}
               label={
-                <Typography sx={{ color: 'white' }}>
+                <Typography sx={{ color: 'white', fontSize: isMobile ? '0.9rem' : '1rem' }}>
                   {option.label}
                 </Typography>
               }
@@ -382,10 +387,10 @@ function App() {
       </AppBar>
 
       {/* Asosiy kontent */}
-      <Container maxWidth="md" sx={{ mt: 15 }}>
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2, bgcolor: '#1B1B1B', color: 'white' }}>
+      <Container maxWidth="md" sx={{ mt: isMobile ? 5 : 15 }}>
+        <Paper elevation={3} sx={{ p: isMobile ? 2 : 4, borderRadius: 2, bgcolor: '#1B1B1B', color: 'white' }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white' }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.5rem' : '2rem' }}>
               {translations[language].appSubtitle}
             </Typography>
           </Box>
@@ -408,26 +413,26 @@ function App() {
           </Box>
 
           {response.length > 0 && (
-            <Box sx={{ mt: 4, p: 3, bgcolor: '#1B1B1B', borderRadius: 2 }}>
-              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
+            <Box sx={{ mt: 4, p: isMobile ? 1 : 3, bgcolor: '#1B1B1B', borderRadius: 2 }}>
+              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.2rem' : '1.5rem' }}>
                 {translations[language].recommendationsTitle}
               </Typography>
               <List>
                 {response.map((item, index) => (
-                  <ListItem key={index} sx={{ borderBottom: '1px solid #ddd', py: 2 }}>
+                  <ListItem key={index} sx={{ borderBottom: '1px solid #ddd', py: isMobile ? 1 : 2 }}>
                     <ListItemAvatar>
-                      <Avatar>
-                        {item.genre === "comedy" ? <ComedyIcon /> : <MovieIcon />}
+                      <Avatar sx={{ width: isMobile ? 30 : 40, height: isMobile ? 30 : 40 }}>
+                        {item.genre === "comedy" ? <ComedyIcon fontSize={isMobile ? 'small' : 'medium'} /> : <MovieIcon fontSize={isMobile ? 'small' : 'medium'} />}
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Typography sx={{ color: 'white', fontWeight: 'bold' }}>
-                          {item.name.replace(/\*\*/g, '')} {/* ** belgilarini olib tashlash */}
+                        <Typography sx={{ color: 'white', fontWeight: 'bold', fontSize: isMobile ? '0.9rem' : '1rem' }}>
+                          {item.name.replace(/\*\*/g, '')}
                         </Typography>
                       }
                       secondary={
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                           {item.description}
                         </Typography>
                       }
