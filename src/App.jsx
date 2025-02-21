@@ -24,20 +24,14 @@ import {
   MenuItem,
   useMediaQuery,
   useTheme,
-<<<<<<< HEAD
   Grid,
-=======
->>>>>>> 2487d774a92c5c41f61c5d9a9ba82e8e9a370f32
 } from '@mui/material';
 import {
   Movie as MovieIcon,
   Language as LanguageIcon,
   EmojiEmotions as ComedyIcon,
-<<<<<<< HEAD
-=======
   Group as GroupIcon,
   LocalBar as PartyIcon,
->>>>>>> 2487d774a92c5c41f61c5d9a9ba82e8e9a370f32
 } from '@mui/icons-material';
 
 const translations = {
@@ -200,8 +194,6 @@ function App() {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-<<<<<<< HEAD
-=======
 
   const handleLanguageMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -210,10 +202,7 @@ function App() {
   const handleLanguageMenuClose = () => {
     setAnchorEl(null);
   };
->>>>>>> 2487d774a92c5c41f61c5d9a9ba82e8e9a370f32
 
-  const handleLanguageMenuOpen = (event) => setAnchorEl(event.currentTarget);
-  const handleLanguageMenuClose = () => setAnchorEl(null);
   const changeLanguage = (lang) => {
     setLanguage(lang);
     handleLanguageMenuClose();
@@ -317,7 +306,6 @@ function App() {
     }
     setLoading(true);
     try {
-      // Promptni rus tilida yozamiz
       const prompt = `Пользователь предпочитает фильмы в жанре ${genrePreference}. Он предпочитает смотреть фильмы ${watchingPreference}. Сейчас он чувствует себя ${mood}. Сегодня его день прошел ${dayType}. Он предпочитает ${socialPreference} и хочет наполниться энергией ${energyPreference}. Пожалуйста, порекомендуйте 3 фильма, которые подходят его настроению, и укажите только название фильма. Ответ должен быть на русском языке.`;
 
       const res = await axios.post(
@@ -346,11 +334,11 @@ function App() {
           const movieDetails = await fetchMovieDetails(name);
           return movieDetails ? { name, details: movieDetails } : null;
         })
-      )).filter(item => item !== null); // null qiymatlarni olib tashlash
+      )).filter(item => item !== null);
 
       setResponse(formattedRecommendations);
     } catch (error) {
-      console.error('API chaqiruvida xato:', error.response ? error.response.data : error.message);
+      console.error('API error:', error.response ? error.response.data : error.message);
       setResponse([{ name: translations[language].errorMessage + (error.response ? JSON.stringify(error.response.data) : error.message) }]);
     } finally {
       setLoading(false);
@@ -422,15 +410,11 @@ function App() {
               key={index}
               value={option.value}
               control={<Radio sx={{ color: 'white' }} />}
-<<<<<<< HEAD
-              label={<Typography sx={{ color: 'white', fontSize: isMobile ? '0.9rem' : '1rem' }} component="span">{option.label}</Typography>}
-=======
               label={
                 <Typography sx={{ color: 'white', fontSize: isMobile ? '0.9rem' : '1rem' }}>
                   {option.label}
                 </Typography>
               }
->>>>>>> 2487d774a92c5c41f61c5d9a9ba82e8e9a370f32
             />
           ))}
         </RadioGroup>
@@ -459,18 +443,10 @@ function App() {
         </Toolbar>
       </AppBar>
 
-<<<<<<< HEAD
-      <Container maxWidth="md" sx={{ mt: isMobile ? 5 : 15 }}>
-        <Paper elevation={3} sx={{ p: isMobile ? 2 : 4, borderRadius: 2, bgcolor: '#1B1B1B', color: 'white' }}>
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h5" component="span" sx={{ fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.5rem' : '2rem' }}>
-=======
-      {/* Asosiy kontent */}
       <Container maxWidth="md" sx={{ mt: isMobile ? 5 : 15 }}>
         <Paper elevation={3} sx={{ p: isMobile ? 2 : 4, borderRadius: 2, bgcolor: '#1B1B1B', color: 'white' }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.5rem' : '2rem' }}>
->>>>>>> 2487d774a92c5c41f61c5d9a9ba82e8e9a370f32
               {translations[language].appSubtitle}
             </Typography>
           </Box>
@@ -494,16 +470,11 @@ function App() {
 
           {response.length > 0 && (
             <Box sx={{ mt: 4, p: isMobile ? 1 : 3, bgcolor: '#1B1B1B', borderRadius: 2 }}>
-<<<<<<< HEAD
-              <Typography variant="h5" component="span" sx={{ mb: 2, fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.2rem' : '1.5rem' }}>
-=======
               <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.2rem' : '1.5rem' }}>
->>>>>>> 2487d774a92c5c41f61c5d9a9ba82e8e9a370f32
                 {translations[language].recommendationsTitle}
               </Typography>
               <Grid container spacing={2}>
                 {response.map((item, index) => (
-<<<<<<< HEAD
                   <Grid item xs={12} sm={6} md={4} key={index}>
                     <Paper elevation={3} sx={{ p: 2, borderRadius: 2, bgcolor: '#2C2C2C', color: 'white' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -531,7 +502,6 @@ function App() {
                           </Avatar>
                         )}
                         <Typography 
-                          component="span" 
                           sx={{ 
                             color: 'white', 
                             fontWeight: 'bold', 
@@ -546,7 +516,6 @@ function App() {
                           <Typography 
                             variant="body2" 
                             color="#FFFFFF" 
-                            component="span"
                             sx={{ display: 'block', mb: 0.5 }}
                           >
                             <strong>📅{translations[language].year}</strong> {item.details.year || 'N/A'}
@@ -554,7 +523,6 @@ function App() {
                           <Typography 
                             variant="body2" 
                             color="#FFFFFF" 
-                            component="span"
                             sx={{ display: 'block', mb: 0.5 }}
                           >
                             <strong>⭐{translations[language].genres}</strong> {Array.isArray(item.details.genres) ? item.details.genres.map(genre => genre.name).join(', ') : 'N/A'}
@@ -562,7 +530,6 @@ function App() {
                           <Typography 
                             variant="body2" 
                             color="#FFFFFF" 
-                            component="span"
                             sx={{ display: 'block', mb: 0.5 }}
                           >
                             <strong>{translations[language].actors}</strong> {item.details.actors || 'N/A'}
@@ -570,7 +537,6 @@ function App() {
                           <Typography 
                             variant="body2" 
                             color="#FFFFFF" 
-                            component="span"
                             sx={{ display: 'block', mb: 0.5 }}
                           >
                             <strong>{translations[language].description}</strong> {item.details.description || 'N/A'}
@@ -579,7 +545,6 @@ function App() {
                             <Typography 
                               variant="body2" 
                               color="#FFFFFF" 
-                              component="span"
                               sx={{ display: 'block', mt: 1 }}
                             >
                               <a
@@ -600,27 +565,6 @@ function App() {
                       </Box>
                     </Paper>
                   </Grid>
-=======
-                  <ListItem key={index} sx={{ borderBottom: '1px solid #ddd', py: isMobile ? 1 : 2 }}>
-                    <ListItemAvatar>
-                      <Avatar sx={{ width: isMobile ? 30 : 40, height: isMobile ? 30 : 40 }}>
-                        {item.genre === "comedy" ? <ComedyIcon fontSize={isMobile ? 'small' : 'medium'} /> : <MovieIcon fontSize={isMobile ? 'small' : 'medium'} />}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Typography sx={{ color: 'white', fontWeight: 'bold', fontSize: isMobile ? '0.9rem' : '1rem' }}>
-                          {item.name.replace(/\*\*/g, '')}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
-                          {item.description}
-                        </Typography>
-                      }
-                    />
-                  </ListItem>
->>>>>>> 2487d774a92c5c41f61c5d9a9ba82e8e9a370f32
                 ))}
               </Grid>
             </Box>
