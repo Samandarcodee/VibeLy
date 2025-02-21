@@ -3,8 +3,54 @@
 }
 
 body {
+<<<<<<< HEAD
   background-color: var(--background-color);
   margin: 0;
   padding: 0;
   font-family: Arial, sans-serif;
 } 
+=======
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  background-color: aqua;
+}
+
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 5px;
+}
+
+.read-the-docs {
+  color: #888;
+}
+>>>>>>> 2487d774a92c5c41f61c5d9a9ba82e8e9a370f32
