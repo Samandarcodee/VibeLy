@@ -22,16 +22,16 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  useMediaQuery,
+  useTheme,
+  Grid,
 } from '@mui/material';
 import {
   Movie as MovieIcon,
   Language as LanguageIcon,
-  EmojiEmotions as ComedyIcon, // Komediya uchun ikonka
-  Group as GroupIcon, // Birga ko'rish uchun ikonka
-  LocalBar as PartyIcon, // Zavq uchun ikonka
+  EmojiEmotions as ComedyIcon,
 } from '@mui/icons-material';
 
-// Tarjimalar JSON fayli
 const translations = {
   uz: {
     appTitle: "VibeLy",
@@ -68,6 +68,12 @@ const translations = {
     buttonGetRecommendations: "Tavsiyalarni Olish",
     recommendationsTitle: "Tavsiyalar:",
     errorMessage: "Xatolik yuz berdi: ",
+    fillAll: "Iltimos, barcha savollarga javob bering!",
+    fillStep: "Iltimos, {step} savolga javob bering!",
+    year: "Yil:",
+    genres: "Janrlar:",
+    actors: "Aktyorlar:",
+    description: "Tasnif:",
   },
   ru: {
     appTitle: "VibeLy",
@@ -104,6 +110,12 @@ const translations = {
     buttonGetRecommendations: "Получить рекомендации",
     recommendationsTitle: "Рекомендации:",
     errorMessage: "Произошла ошибка: ",
+    fillAll: "Пожалуйста, ответьте на все вопросы!",
+    fillStep: "Пожалуйста, ответьте на {step} вопрос!",
+    year: "Год:",
+    genres: "Жанры:",
+    actors: "Актеры:",
+    description: "Описание:",
   },
   en: {
     appTitle: "VibeLy",
@@ -140,11 +152,30 @@ const translations = {
     buttonGetRecommendations: "Get Recommendations",
     recommendationsTitle: "Recommendations:",
     errorMessage: "An error occurred: ",
+    fillAll: "Please answer all the questions!",
+    fillStep: "Please answer the {step} question!",
+    year: "Year:",
+    genres: "Genres:",
+    actors: "Actors:",
+    description: "Description:",
   },
 };
 
 const API_KEY = '45cc22d90672cbbcdb905049fa3bc212d015130b3eddbb40a8c108f613b758a2';
 const API_BASE_URL = 'https://api.together.xyz/v1';
+const KINOPOISK_API_KEY = 'E032XGP-C0EMA2H-G0CSDZ5-SBAAESF';
+const KINOPOISK_API_URL = 'https://api.kinopoisk.dev/v1.3/movie';
+
+const getFilmNameOnly = (name) => {
+  const quoteMatch = name.match(/"([^"]+)"/);
+  if (quoteMatch) {
+    return quoteMatch[1].trim();
+  }
+  const noStars = name.replace(/\*/g, '').trim();
+  const parenMatch = noStars.match(/^([^(]+)/);
+  const filmName = parenMatch ? parenMatch[1].trim() : noStars;
+  return filmName;
+};
 
 function App() {
   const [response, setResponse] = useState([]);
@@ -159,14 +190,11 @@ function App() {
   const [language, setLanguage] = useState('uz');
   const [anchorEl, setAnchorEl] = useState(null);
 
-  const handleLanguageMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const handleLanguageMenuClose = () => {
-    setAnchorEl(null);
-  };
-
+  const handleLanguageMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleLanguageMenuClose = () => setAnchorEl(null);
   const changeLanguage = (lang) => {
     setLanguage(lang);
     handleLanguageMenuClose();
@@ -226,29 +254,113 @@ function App() {
     },
   ];
 
+  const cleanMovieName = (name) => {
+    const cleaned = name.replace(/\*\*/g, '').replace(/"/g, '').trim();
+    return cleaned;
+  };
+
+  const fetchMovieDetails = async (movieName) => {
+    try {
+      const cleanedName = cleanMovieName(movieName);
+      const filmNameOnly = getFilmNameOnly(cleanedName);
+      console.log('Fetching details for:', filmNameOnly);
+      const res = await axios.get(KINOPOISK_API_URL, {
+        params: { name: filmNameOnly },
+        headers: { 'X-API-KEY': KINOPOISK_API_KEY },
+      });
+      console.log('Kinopoisk API response:', res.data);
+      if (res.data.docs && res.data.docs.length > 0) {
+        const movie = res.data.docs[0];
+        return {
+          name: movie.name || movie.alternativeName || movie.enName || filmNameOnly,
+          poster: movie.poster ? movie.poster.url : null,
+          link: `https://www.kinopoisk.ru/film/${movie.id}/`,
+          rating: movie.rating?.kp || 'N/A',
+          year: movie.year || 'N/A',
+          genres: movie.genres || [],
+          actors: movie.persons?.filter(person => person.enProfession === 'actor').map(actor => actor.name).join(', ') || 'N/A',
+          description: movie.description || 'N/A',
+        };
+      } else {
+        console.warn(`No movie found for: ${filmNameOnly}`);
+        return null;
+      }
+    } catch (error) {
+      console.error('Kinopoisk API error:', error);
+      return null;
+    }
+  };
+
+  const generateRecommendations = async () => {
+    if (!genrePreference || !watchingPreference || !mood || !dayType || !socialPreference || !energyPreference) {
+      alert(translations[language].fillAll);
+      return;
+    }
+    setLoading(true);
+    try {
+      // Promptni rus tilida yozamiz
+      const prompt = `Пользователь предпочитает фильмы в жанре ${genrePreference}. Он предпочитает смотреть фильмы ${watchingPreference}. Сейчас он чувствует себя ${mood}. Сегодня его день прошел ${dayType}. Он предпочитает ${socialPreference} и хочет наполниться энергией ${energyPreference}. Пожалуйста, порекомендуйте 3 фильма, которые подходят его настроению, и укажите только название фильма. Ответ должен быть на русском языке.`;
+
+      const res = await axios.post(
+        `${API_BASE_URL}/chat/completions`,
+        {
+          model: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 900,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const cleanedResponse = res.data.choices[0].message.content.replace(/<think>[\s\S]*?<\/think>/g, '');
+      const filmNames = cleanedResponse
+        .split('\n')
+        .filter(line => line.trim() !== '')
+        .map(line => getFilmNameOnly(line));
+
+      const formattedRecommendations = (await Promise.all(
+        filmNames.map(async (name) => {
+          const movieDetails = await fetchMovieDetails(name);
+          return movieDetails ? { name, details: movieDetails } : null;
+        })
+      )).filter(item => item !== null); // null qiymatlarni olib tashlash
+
+      setResponse(formattedRecommendations);
+    } catch (error) {
+      console.error('API chaqiruvida xato:', error.response ? error.response.data : error.message);
+      setResponse([{ name: translations[language].errorMessage + (error.response ? JSON.stringify(error.response.data) : error.message) }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleNext = () => {
     if (step === 1 && !genrePreference) {
-      alert(translations[language].errorMessage + 'Iltimos, birinchi savolga javob bering!');
+      alert(translations[language].fillStep.replace('{step}', '1'));
       return;
     }
     if (step === 2 && !watchingPreference) {
-      alert(translations[language].errorMessage + 'Iltimos, ikkinchi savolga javob bering!');
+      alert(translations[language].fillStep.replace('{step}', '2'));
       return;
     }
     if (step === 3 && !mood) {
-      alert(translations[language].errorMessage + 'Iltimos, uchinchi savolga javob bering!');
+      alert(translations[language].fillStep.replace('{step}', '3'));
       return;
     }
     if (step === 4 && !dayType) {
-      alert(translations[language].errorMessage + 'Iltimos, to‘rtinchi savolga javob bering!');
+      alert(translations[language].fillStep.replace('{step}', '4'));
       return;
     }
     if (step === 5 && !socialPreference) {
-      alert(translations[language].errorMessage + 'Iltimos, beshinchi savolga javob bering!');
+      alert(translations[language].fillStep.replace('{step}', '5'));
       return;
     }
     if (step === 6 && !energyPreference) {
-      alert(translations[language].errorMessage + 'Iltimos, oltinchi savolga javob bering!');
+      alert(translations[language].fillStep.replace('{step}', '6'));
       return;
     }
     if (step < 6) setStep(step + 1);
@@ -258,76 +370,31 @@ function App() {
     if (step > 1) setStep(step - 1);
   };
 
-  const generateRecommendations = async () => {
-    if (!genrePreference || !watchingPreference || !mood || !dayType || !socialPreference || !energyPreference) {
-      alert(translations[language].errorMessage + 'Iltimos, barcha savollarga javob bering!');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const prompt = `Foydalanuvchi ${genrePreference} janridagi filmlarni yoqtiradi. U ${watchingPreference} tomosha qilishni afzal ko‘radi. Hozir u ${mood} his qilmoqda. Bugun uning kuni ${dayType} o‘tdi. U ${socialPreference}ni afzal ko‘radi va ${energyPreference} bilan to‘lishni xohlaydi. Uning kayfiyatiga mos 3 ta film tavsiya qiling. Iltimos, har bir film uchun quyidagi ma'lumotlarni aniq ko'rsating: 1. Film nomi, 2. Film haqida qisqacha ma'lumot. Javobni ${language} tilida bering.`;
-
-      const response = await axios.post(`${API_BASE_URL}/chat/completions`, {
-        model: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        max_tokens: 900
-      }, {
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const cleanedResponse = response.data.choices[0].message.content.replace(/<think>[\s\S]*?<\/think>/g, '');
-      const recommendations = cleanedResponse
-        .split('\n')
-        .filter(line => line.trim() !== '')
-        .map(line => line.replace(/^\d+\.\s*/, '').trim());
-
-      const formattedRecommendations = recommendations.map((item) => {
-        const [name, description] = item.split('\n');
-        return { name, description };
-      });
-
-      setResponse(formattedRecommendations);
-    } catch (error) {
-      console.error('API chaqiruvida xato:', error.response ? error.response.data : error.message);
-      setResponse([{ name: translations[language].errorMessage + (error.response ? error.response.data : error.message) }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const renderStepContent = () => {
     const question = questions[step - 1];
+    const currentValue =
+      step === 1 ? genrePreference :
+      step === 2 ? watchingPreference :
+      step === 3 ? mood :
+      step === 4 ? dayType :
+      step === 5 ? socialPreference :
+      step === 6 ? energyPreference : '';
 
     return (
       <FormControl component="fieldset" sx={{ mb: 3, width: '100%' }}>
-        <FormLabel component="legend" sx={{ color: 'white', mb: 2, fontSize: '1.2rem', fontWeight: 'bold' }}>
+        <FormLabel component="legend" sx={{ color: 'white', mb: 2, fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 'bold' }}>
           {question.text}
         </FormLabel>
         <RadioGroup
-          value={
-            step === 1 ? genrePreference :
-            step === 2 ? watchingPreference :
-            step === 3 ? mood :
-            step === 4 ? dayType :
-            step === 5 ? socialPreference :
-            step === 6 ? energyPreference : ''
-          }
+          value={currentValue}
           onChange={(e) => {
-            if (step === 1) setGenrePreference(e.target.value);
-            else if (step === 2) setWatchingPreference(e.target.value);
-            else if (step === 3) setMood(e.target.value);
-            else if (step === 4) setDayType(e.target.value);
-            else if (step === 5) setSocialPreference(e.target.value);
-            else if (step === 6) setEnergyPreference(e.target.value);
+            const val = e.target.value;
+            if (step === 1) setGenrePreference(val);
+            else if (step === 2) setWatchingPreference(val);
+            else if (step === 3) setMood(val);
+            else if (step === 4) setDayType(val);
+            else if (step === 5) setSocialPreference(val);
+            else if (step === 6) setEnergyPreference(val);
           }}
           sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
         >
@@ -336,11 +403,7 @@ function App() {
               key={index}
               value={option.value}
               control={<Radio sx={{ color: 'white' }} />}
-              label={
-                <Typography sx={{ color: 'white' }}>
-                  {option.label}
-                </Typography>
-              }
+              label={<Typography sx={{ color: 'white', fontSize: isMobile ? '0.9rem' : '1rem' }} component="span">{option.label}</Typography>}
             />
           ))}
         </RadioGroup>
@@ -350,30 +413,18 @@ function App() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      {/* Navbar */}
       <AppBar position="static" sx={{ bgcolor: '#1B1B1B' }}>
         <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
             <MovieIcon sx={{ fontSize: 40, color: 'white', mr: 2 }} />
-            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: 'white' }}>
+            <Typography variant="h6" component="span" sx={{ fontWeight: 'bold', color: 'white' }}>
               {translations[language].appTitle}
             </Typography>
           </Box>
-
-          <IconButton
-            size="large"
-            edge="end"
-            color="inherit"
-            aria-label="language"
-            onClick={handleLanguageMenuOpen}
-          >
+          <IconButton size="large" edge="end" color="inherit" aria-label="language" onClick={handleLanguageMenuOpen}>
             <LanguageIcon />
           </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleLanguageMenuClose}
-          >
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleLanguageMenuClose}>
             <MenuItem onClick={() => changeLanguage('uz')}>O'zbek</MenuItem>
             <MenuItem onClick={() => changeLanguage('ru')}>Русский</MenuItem>
             <MenuItem onClick={() => changeLanguage('en')}>English</MenuItem>
@@ -381,11 +432,10 @@ function App() {
         </Toolbar>
       </AppBar>
 
-      {/* Asosiy kontent */}
-      <Container maxWidth="md" sx={{ mt: 15 }}>
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2, bgcolor: '#1B1B1B', color: 'white' }}>
+      <Container maxWidth="md" sx={{ mt: isMobile ? 5 : 15 }}>
+        <Paper elevation={3} sx={{ p: isMobile ? 2 : 4, borderRadius: 2, bgcolor: '#1B1B1B', color: 'white' }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white' }}>
+            <Typography variant="h5" component="span" sx={{ fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.5rem' : '2rem' }}>
               {translations[language].appSubtitle}
             </Typography>
           </Box>
@@ -408,33 +458,110 @@ function App() {
           </Box>
 
           {response.length > 0 && (
-            <Box sx={{ mt: 4, p: 3, bgcolor: '#1B1B1B', borderRadius: 2 }}>
-              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
+            <Box sx={{ mt: 4, p: isMobile ? 1 : 3, bgcolor: '#1B1B1B', borderRadius: 2 }}>
+              <Typography variant="h5" component="span" sx={{ mb: 2, fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.2rem' : '1.5rem' }}>
                 {translations[language].recommendationsTitle}
               </Typography>
-              <List>
+              <Grid container spacing={2}>
                 {response.map((item, index) => (
-                  <ListItem key={index} sx={{ borderBottom: '1px solid #ddd', py: 2 }}>
-                    <ListItemAvatar>
-                      <Avatar>
-                        {item.genre === "comedy" ? <ComedyIcon /> : <MovieIcon />}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Typography sx={{ color: 'white', fontWeight: 'bold' }}>
-                          {item.name.replace(/\*\*/g, '')} {/* ** belgilarini olib tashlash */}
+                  <Grid item xs={12} sm={6} md={4} key={index}>
+                    <Paper elevation={3} sx={{ p: 2, borderRadius: 2, bgcolor: '#2C2C2C', color: 'white' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        {item.details.poster ? (
+                          <Avatar
+                            variant="square"
+                            src={item.details.poster}
+                            sx={{ 
+                              width: '100%', 
+                              height: isMobile ? 150 : 200,
+                              borderRadius: 2,
+                            }}
+                          />
+                        ) : (
+                          <Avatar sx={{ 
+                            width: isMobile ? 60 : 80, 
+                            height: isMobile ? 60 : 80,
+                            borderRadius: 2,
+                          }}>
+                            {item.name.toLowerCase().includes("comedy") ? (
+                              <ComedyIcon fontSize={isMobile ? 'small' : 'medium'} />
+                            ) : (
+                              <MovieIcon fontSize={isMobile ? 'small' : 'medium'} />
+                            )}
+                          </Avatar>
+                        )}
+                        <Typography 
+                          component="span" 
+                          sx={{ 
+                            color: 'white', 
+                            fontWeight: 'bold', 
+                            fontSize: isMobile ? '0.9rem' : '1rem',
+                            mb: 1,
+                            textAlign: 'center',
+                          }}
+                        >
+                          🎬{item.name}
                         </Typography>
-                      }
-                      secondary={
-                        <Typography variant="body2" color="text.secondary">
-                          {item.description}
-                        </Typography>
-                      }
-                    />
-                  </ListItem>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography 
+                            variant="body2" 
+                            color="#FFFFFF" 
+                            component="span"
+                            sx={{ display: 'block', mb: 0.5 }}
+                          >
+                            <strong>📅{translations[language].year}</strong> {item.details.year || 'N/A'}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            color="#FFFFFF" 
+                            component="span"
+                            sx={{ display: 'block', mb: 0.5 }}
+                          >
+                            <strong>⭐{translations[language].genres}</strong> {Array.isArray(item.details.genres) ? item.details.genres.map(genre => genre.name).join(', ') : 'N/A'}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            color="#FFFFFF" 
+                            component="span"
+                            sx={{ display: 'block', mb: 0.5 }}
+                          >
+                            <strong>{translations[language].actors}</strong> {item.details.actors || 'N/A'}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            color="#FFFFFF" 
+                            component="span"
+                            sx={{ display: 'block', mb: 0.5 }}
+                          >
+                            <strong>{translations[language].description}</strong> {item.details.description || 'N/A'}
+                          </Typography>
+                          {item.details.link && (
+                            <Typography 
+                              variant="body2" 
+                              color="#FFFFFF" 
+                              component="span"
+                              sx={{ display: 'block', mt: 1 }}
+                            >
+                              <a
+                                href={item.details.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ 
+                                  color: '#1565C0', 
+                                  textDecoration: 'none',
+                                  fontWeight: 'bold',
+                                }}
+                              >
+                                Посмотреть на Кинопоиске
+                              </a>
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    </Paper>
+                  </Grid>
                 ))}
-              </List>
+              </Grid>
             </Box>
           )}
         </Paper>
