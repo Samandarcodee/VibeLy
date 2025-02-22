@@ -450,7 +450,7 @@ function App() {
         <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
             <Typography variant="h6" component="span" sx={{ fontWeight: 'bold', color: 'white' }}>
-            <img width={120} height={40} src="/src/assets/VibeLy.png" alt="" />
+            <img width={120} height={40} src="./src/assets/VibeLy.png" alt="" />
             </Typography>
           </Box>
           <IconButton size="large" edge="end" color="inherit" aria-label="language" onClick={handleLanguageMenuOpen}>
