@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Container,
@@ -12,11 +12,7 @@ import {
   FormControlLabel,
   FormControl,
   FormLabel,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Avatar,
+  Grid,
   AppBar,
   Toolbar,
   IconButton,
@@ -24,16 +20,15 @@ import {
   MenuItem,
   useMediaQuery,
   useTheme,
-  Grid,
+  Avatar,
 } from '@mui/material';
 import {
   Movie as MovieIcon,
   Language as LanguageIcon,
   EmojiEmotions as ComedyIcon,
-  Group as GroupIcon,
-  LocalBar as PartyIcon,
 } from '@mui/icons-material';
 
+// Tarjimalar
 const translations = {
   uz: {
     appTitle: "VibeLy",
@@ -163,11 +158,13 @@ const translations = {
   },
 };
 
+// API kalitlari
 const API_KEY = '45cc22d90672cbbcdb905049fa3bc212d015130b3eddbb40a8c108f613b758a2';
 const API_BASE_URL = 'https://api.together.xyz/v1';
 const KINOPOISK_API_KEY = 'E032XGP-C0EMA2H-G0CSDZ5-SBAAESF';
 const KINOPOISK_API_URL = 'https://api.kinopoisk.dev/v1.3/movie';
 
+// Film nomini tozalash
 const getFilmNameOnly = (name) => {
   const quoteMatch = name.match(/"([^"]+)"/);
   if (quoteMatch) {
@@ -195,6 +192,23 @@ function App() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  // Til o'zgartirilganda tavsiyalarni qayta generatsiya qilish
+  useEffect(() => {
+    if (
+      genrePreference &&
+      watchingPreference &&
+      mood &&
+      dayType &&
+      socialPreference &&
+      energyPreference
+    ) {
+      generateRecommendations();
+    } else {
+      setResponse([]); // Agar barcha savollarga javob berilmagan bo'lsa, tavsiyalarni tozalash
+    }
+  }, [language]); // Til o'zgartirilganda ishga tushadi
+
+  // Tilni o'zgartirish
   const handleLanguageMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -208,6 +222,7 @@ function App() {
     handleLanguageMenuClose();
   };
 
+  // Savollar ro'yxati
   const questions = [
     {
       text: translations[language].question1,
@@ -262,11 +277,13 @@ function App() {
     },
   ];
 
+  // Film nomini tozalash
   const cleanMovieName = (name) => {
     const cleaned = name.replace(/\*\*/g, '').replace(/"/g, '').trim();
     return cleaned;
   };
 
+  // Kinopoisk API orqali film ma'lumotlarini olish
   const fetchMovieDetails = async (movieName) => {
     try {
       const cleanedName = cleanMovieName(movieName);
@@ -299,6 +316,7 @@ function App() {
     }
   };
 
+  // Tavsiyalarni generatsiya qilish
   const generateRecommendations = async () => {
     if (!genrePreference || !watchingPreference || !mood || !dayType || !socialPreference || !energyPreference) {
       alert(translations[language].fillAll);
@@ -306,7 +324,7 @@ function App() {
     }
     setLoading(true);
     try {
-      const prompt = `Пользователь предпочитает фильмы в жанре ${genrePreference}. Он предпочитает смотреть фильмы ${watchingPreference}. Сейчас он чувствует себя ${mood}. Сегодня его день прошел ${dayType}. Он предпочитает ${socialPreference} и хочет наполниться энергией ${energyPreference}. Пожалуйста, порекомендуйте 3 фильма, которые подходят его настроению, и укажите только название фильма. Ответ должен быть на русском языке.`;
+      const prompt = `Пользователь предпочитает фильмы в жанре ${genrePreference}. Он предпочитает смотреть фильмы ${watchingPreference}. Сейчас он чувствует себя ${mood}. Сегодня его день прошел ${dayType}. Он предпочитает ${socialPreference} и хочет наполниться энергией ${energyPreference}. Пожалуйста, порекомендуйте 5 фильмов, которые подходят его настроению, и укажите только название фильма. Ответ должен быть на русском языке.`;
 
       const res = await axios.post(
         `${API_BASE_URL}/chat/completions`,
@@ -327,7 +345,8 @@ function App() {
       const filmNames = cleanedResponse
         .split('\n')
         .filter(line => line.trim() !== '')
-        .map(line => getFilmNameOnly(line));
+        .map(line => getFilmNameOnly(line))
+        .slice(0, 5); // Faqat 5 ta filmni olish
 
       const formattedRecommendations = (await Promise.all(
         filmNames.map(async (name) => {
@@ -345,6 +364,7 @@ function App() {
     }
   };
 
+  // Keyingi qadamga o'tish
   const handleNext = () => {
     if (step === 1 && !genrePreference) {
       alert(translations[language].fillStep.replace('{step}', '1'));
@@ -373,10 +393,12 @@ function App() {
     if (step < 6) setStep(step + 1);
   };
 
+  // Orqaga qaytish
   const handleBack = () => {
     if (step > 1) setStep(step - 1);
   };
 
+  // Qadam kontentini ko'rsatish
   const renderStepContent = () => {
     const question = questions[step - 1];
     const currentValue =
@@ -427,9 +449,8 @@ function App() {
       <AppBar position="static" sx={{ bgcolor: '#1B1B1B' }}>
         <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-            <MovieIcon sx={{ fontSize: 40, color: 'white', mr: 2 }} />
             <Typography variant="h6" component="span" sx={{ fontWeight: 'bold', color: 'white' }}>
-              {translations[language].appTitle}
+            <img width={120} height={40} src="/src/assets/VibeLy.png" alt="" />
             </Typography>
           </Box>
           <IconButton size="large" edge="end" color="inherit" aria-label="language" onClick={handleLanguageMenuOpen}>
@@ -475,29 +496,30 @@ function App() {
               </Typography>
               <Grid container spacing={2}>
                 {response.map((item, index) => (
-                  <Grid item xs={12} sm={6} md={4} key={index}>
-                    <Paper elevation={3} sx={{ p: 2, borderRadius: 2, bgcolor: '#2C2C2C', color: 'white' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex' }}>
+                    <Paper elevation={3} sx={{ p: 2, borderRadius: 2, bgcolor: '#2C2C2C', color: 'white', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                         {item.details.poster ? (
                           <Avatar
                             variant="square"
                             src={item.details.poster}
                             sx={{ 
                               width: '100%', 
-                              height: isMobile ? 150 : 200,
+                              height: 200, // Rasm balandligini bir xil qilish
                               borderRadius: 2,
+                              objectFit: 'cover', // Rasmni to'liq ko'rsatish
                             }}
                           />
                         ) : (
                           <Avatar sx={{ 
-                            width: isMobile ? 60 : 80, 
-                            height: isMobile ? 60 : 80,
+                            width: '100%', 
+                            height: 200, // Rasm balandligini bir xil qilish
                             borderRadius: 2,
                           }}>
                             {item.name.toLowerCase().includes("comedy") ? (
-                              <ComedyIcon fontSize={isMobile ? 'small' : 'medium'} />
+                              <ComedyIcon fontSize="large" />
                             ) : (
-                              <MovieIcon fontSize={isMobile ? 'small' : 'medium'} />
+                              <MovieIcon fontSize="large" />
                             )}
                           </Avatar>
                         )}
@@ -512,7 +534,7 @@ function App() {
                         >
                           🎬{item.name}
                         </Typography>
-                        <Box sx={{ textAlign: 'center' }}>
+                        <Box sx={{ textAlign: 'center', width: '100%' }}>
                           <Typography 
                             variant="body2" 
                             color="#FFFFFF" 

@@ -3,20 +3,13 @@
 }
 
 body {
-<<<<<<< HEAD
   background-color: var(--background-color);
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-} 
-=======
-  max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
+  font-family: Arial, sans-serif;
+  max-width: 1280px;
   text-align: center;
-  background-color: aqua;
 }
-
 
 .logo {
   height: 6em;
@@ -53,4 +46,3 @@ body {
 .read-the-docs {
   color: #888;
 }
->>>>>>> 2487d774a92c5c41f61c5d9a9ba82e8e9a370f32
