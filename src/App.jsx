@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import axios from 'axios';
 import {
   Container,
@@ -21,18 +21,33 @@ import {
   useMediaQuery,
   useTheme,
   Avatar,
+  Fade,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Movie as MovieIcon,
   Language as LanguageIcon,
-  EmojiEmotions as ComedyIcon,
+  CalendarToday as CalendarTodayIcon,
+  LocalMovies as LocalMoviesIcon,
+  People as PeopleIcon,
+  Description as DescriptionIcon,
+  FavoriteBorder as FavoriteBorderIcon,
+  Favorite as FavoriteIcon,
 } from '@mui/icons-material';
+import Slider from 'react-slick';
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 // Tarjimalar
 const translations = {
   uz: {
     appTitle: "VibeLy",
     appSubtitle: "Kayfiyatingizga mos filmlarni toping!",
+    question: "Savol",
+    of: "dan",
     question1: "Qaysi janrdagi filmlarni ko‘rishni yoqtirasiz?",
     question2: "Filmni yolg‘iz tomosha qilishni yoqtirasizmi yoki kim bilandir birga?",
     question3: "Hozir o‘zingizni qanday his qilyapsiz?",
@@ -63,6 +78,7 @@ const translations = {
     buttonBack: "Orqaga",
     buttonNext: "Keyingi",
     buttonGetRecommendations: "Tavsiyalarni Olish",
+    moreRecommendations: "Yana Tavsiyalar",
     recommendationsTitle: "Tavsiyalar:",
     errorMessage: "Xatolik yuz berdi: ",
     fillAll: "Iltimos, barcha savollarga javob bering!",
@@ -71,10 +87,17 @@ const translations = {
     genres: "Janrlar:",
     actors: "Aktyorlar:",
     description: "Tasnif:",
+    dailyRecommendation: "Kundalik Film Tavsiyasi",
+    favorites: "Sevimlilar",
+    addToFavorites: "Sevimlilarga qo‘shish",
+    removeFromFavorites: "Sevimlilardan olib tashlash",
+    aiRecommendation: "AI yordamida tavsiya olish",
   },
   ru: {
     appTitle: "VibeLy",
     appSubtitle: "Найдите фильмы по вашему настроению!",
+    question: "Вопрос",
+    of: "из",
     question1: "Какие жанры фильмов вы предпочитаете?",
     question2: "Вы хотите смотреть фильм один или с кем-то?",
     question3: "Как вы себя чувствуете сейчас?",
@@ -105,6 +128,7 @@ const translations = {
     buttonBack: "Назад",
     buttonNext: "Далее",
     buttonGetRecommendations: "Получить рекомендации",
+    moreRecommendations: "Ещё рекомендации",
     recommendationsTitle: "Рекомендации:",
     errorMessage: "Произошла ошибка: ",
     fillAll: "Пожалуйста, ответьте на все вопросы!",
@@ -113,10 +137,17 @@ const translations = {
     genres: "Жанры:",
     actors: "Актеры:",
     description: "Описание:",
+    dailyRecommendation: "Ежедневная рекомендация фильма",
+    favorites: "Избранное",
+    addToFavorites: "Добавить в избранное",
+    removeFromFavorites: "Удалить из избранного",
+    aiRecommendation: "Получить рекомендацию с помощью ИИ",
   },
   en: {
     appTitle: "VibeLy",
     appSubtitle: "Find movies that match your mood!",
+    question: "Question",
+    of: "of",
     question1: "Which movie genres do you prefer?",
     question2: "Do you prefer watching movies alone or with someone?",
     question3: "How are you feeling right now?",
@@ -147,6 +178,7 @@ const translations = {
     buttonBack: "Back",
     buttonNext: "Next",
     buttonGetRecommendations: "Get Recommendations",
+    moreRecommendations: "More Recommendations",
     recommendationsTitle: "Recommendations:",
     errorMessage: "An error occurred: ",
     fillAll: "Please answer all the questions!",
@@ -155,30 +187,33 @@ const translations = {
     genres: "Genres:",
     actors: "Actors:",
     description: "Description:",
+    dailyRecommendation: "Daily Movie Recommendation",
+    favorites: "Favorites",
+    addToFavorites: "Add to Favorites",
+    removeFromFavorites: "Remove from Favorites",
+    aiRecommendation: "Get Recommendation with AI",
   },
 };
 
-// API kalitlari
+// API sozlamalari
 const API_KEY = '45cc22d90672cbbcdb905049fa3bc212d015130b3eddbb40a8c108f613b758a2';
 const API_BASE_URL = 'https://api.together.xyz/v1';
 const KINOPOISK_API_KEY = 'E032XGP-C0EMA2H-G0CSDZ5-SBAAESF';
 const KINOPOISK_API_URL = 'https://api.kinopoisk.dev/v1.3/movie';
 
-// Film nomini tozalash
+// Film nomini tozalash funksiyasi
 const getFilmNameOnly = (name) => {
   const quoteMatch = name.match(/"([^"]+)"/);
-  if (quoteMatch) {
-    return quoteMatch[1].trim();
-  }
+  if (quoteMatch) return quoteMatch[1].trim();
   const noStars = name.replace(/\*/g, '').trim();
   const parenMatch = noStars.match(/^([^(]+)/);
-  const filmName = parenMatch ? parenMatch[1].trim() : noStars;
-  return filmName;
+  return parenMatch ? parenMatch[1].trim() : noStars;
 };
 
 function App() {
   const [response, setResponse] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [genrePreference, setGenrePreference] = useState('');
   const [watchingPreference, setWatchingPreference] = useState('');
   const [mood, setMood] = useState('');
@@ -188,42 +223,45 @@ function App() {
   const [step, setStep] = useState(1);
   const [language, setLanguage] = useState('uz');
   const [anchorEl, setAnchorEl] = useState(null);
+  const [dailyMovies, setDailyMovies] = useState([]);
+  const [favorites, setFavorites] = useState(JSON.parse(localStorage.getItem('favorites')) || []);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [recommendedMovies, setRecommendedMovies] = useState([]);
+  const [usedMovieIds, setUsedMovieIds] = useState(new Set());
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Til o'zgartirilganda tavsiyalarni qayta generatsiya qilish
+  // Kundalik tavsiyalarni har safar yangilash
   useEffect(() => {
-    if (
-      genrePreference &&
-      watchingPreference &&
-      mood &&
-      dayType &&
-      socialPreference &&
-      energyPreference
-    ) {
-      generateRecommendations();
-    } else {
-      setResponse([]); // Agar barcha savollarga javob berilmagan bo'lsa, tavsiyalarni tozalash
-    }
-  }, [language]); // Til o'zgartirilganda ishga tushadi
-
-  // Tilni o'zgartirish
-  const handleLanguageMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleLanguageMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const changeLanguage = (lang) => {
-    setLanguage(lang);
-    handleLanguageMenuClose();
-  };
+    const fetchDailyRecommendations = async () => {
+      try {
+        const res = await axios.get(KINOPOISK_API_URL, {
+          params: { 'votes.kp': '10000-10000000', sortField: 'random', limit: 6 },
+          headers: { 'X-API-KEY': KINOPOISK_API_KEY },
+        });
+        const movies = res.data.docs.map(movie => ({
+          id: movie.id,
+          name: movie.name || movie.alternativeName || movie.enName || 'Unknown',
+          poster: movie.poster?.url || null,
+          link: `https://www.kinopoisk.ru/film/${movie.id}/`,
+          rating: movie.rating?.kp?.toFixed(1) || 'N/A',
+          year: movie.year || 'N/A',
+          genres: movie.genres?.map(g => g.name) || [],
+          actors: movie.persons?.filter(p => p.enProfession === 'actor').map(a => a.name).join(', ') || 'N/A',
+          description: movie.description || 'N/A',
+        }));
+        setDailyMovies(movies);
+      } catch (error) {
+        console.error('Kundalik tavsiyalar xatosi:', error);
+      }
+    };
+    fetchDailyRecommendations();
+  }, []);
 
   // Savollar ro'yxati
-  const questions = [
+  const questions = useMemo(() => [
     {
       text: translations[language].question1,
       options: [
@@ -275,63 +313,110 @@ function App() {
         { value: "wonder", label: translations[language].optionWonder },
       ],
     },
-  ];
+  ], [language]);
 
-  // Film nomini tozalash
-  const cleanMovieName = (name) => {
-    const cleaned = name.replace(/\*\*/g, '').replace(/"/g, '').trim();
-    return cleaned;
+  // Til menyusi handlerlari
+  const handleLanguageMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleLanguageMenuClose = () => setAnchorEl(null);
+  const changeLanguage = (lang) => {
+    setLanguage(lang);
+    handleLanguageMenuClose();
   };
 
-  // Kinopoisk API orqali film ma'lumotlarini olish
+  // Sevimlilarga qo‘shish/olib tashlash
+  const toggleFavorite = (movie) => {
+    const isFavorite = favorites.some(fav => fav.id === movie.id);
+    let newFavorites;
+    if (isFavorite) {
+      newFavorites = favorites.filter(fav => fav.id !== movie.id);
+    } else {
+      newFavorites = [...favorites, movie];
+    }
+    setFavorites(newFavorites);
+    localStorage.setItem('favorites', JSON.stringify(newFavorites));
+  };
+
+  // Zaxira filmlarni olish
+  const getBackupMovies = async () => {
+    try {
+      const res = await axios.get(KINOPOISK_API_URL, {
+        params: { 'votes.kp': '10000-10000000', sortField: 'random', limit: 10 },
+        headers: { 'X-API-KEY': KINOPOISK_API_KEY },
+      });
+      return res.data.docs
+        .filter(movie => !usedMovieIds.has(movie.id))
+        .map(movie => ({
+          id: movie.id,
+          name: movie.name || movie.alternativeName || movie.enName || 'Unknown',
+          poster: movie.poster?.url || null,
+          link: `https://www.kinopoisk.ru/film/${movie.id}/`,
+          rating: movie.rating?.kp?.toFixed(1) || 'N/A',
+          year: movie.year || 'N/A',
+          genres: movie.genres?.map(g => g.name) || [],
+          actors: movie.persons?.filter(p => p.enProfession === 'actor').map(a => a.name).join(', ') || 'N/A',
+          description: movie.description || 'N/A',
+        }));
+    } catch (error) {
+      console.error('Zaxira filmlar xatosi:', error);
+      return [];
+    }
+  };
+
+  // Kinopoiskdan film ma'lumotlarini olish
   const fetchMovieDetails = async (movieName) => {
     try {
-      const cleanedName = cleanMovieName(movieName);
+      const cleanedName = movieName.replace(/\*\*/g, '').replace(/"/g, '').trim();
       const filmNameOnly = getFilmNameOnly(cleanedName);
-      console.log('Fetching details for:', filmNameOnly);
       const res = await axios.get(KINOPOISK_API_URL, {
         params: { name: filmNameOnly },
         headers: { 'X-API-KEY': KINOPOISK_API_KEY },
       });
-      console.log('Kinopoisk API response:', res.data);
       if (res.data.docs && res.data.docs.length > 0) {
         const movie = res.data.docs[0];
+        if (usedMovieIds.has(movie.id)) return null;
         return {
+          id: movie.id,
           name: movie.name || movie.alternativeName || movie.enName || filmNameOnly,
           poster: movie.poster ? movie.poster.url : null,
           link: `https://www.kinopoisk.ru/film/${movie.id}/`,
           rating: movie.rating?.kp || 'N/A',
           year: movie.year || 'N/A',
-          genres: movie.genres || [],
-          actors: movie.persons?.filter(person => person.enProfession === 'actor').map(actor => actor.name).join(', ') || 'N/A',
+          genres: movie.genres?.map(g => g.name) || [],
+          actors: movie.persons?.filter(p => p.enProfession === 'actor').map(a => a.name).join(', ') || 'N/A',
           description: movie.description || 'N/A',
         };
-      } else {
-        console.warn(`No movie found for: ${filmNameOnly}`);
-        return null;
       }
+      return null;
     } catch (error) {
-      console.error('Kinopoisk API error:', error);
+      console.error('Kinopoisk API xatosi:', error);
       return null;
     }
   };
 
-  // Tavsiyalarni generatsiya qilish
-  const generateRecommendations = async () => {
+  // Film tavsiyalarini generatsiya qilish
+  const generateRecommendations = async (isMore = false) => {
     if (!genrePreference || !watchingPreference || !mood || !dayType || !socialPreference || !energyPreference) {
       alert(translations[language].fillAll);
       return;
     }
     setLoading(true);
+    setErrorMessage('');
     try {
-      const prompt = `Пользователь предпочитает фильмы в жанре ${genrePreference}. Он предпочитает смотреть фильмы ${watchingPreference}. Сейчас он чувствует себя ${mood}. Сегодня его день прошел ${dayType}. Он предпочитает ${socialPreference} и хочет наполниться энергией ${energyPreference}. Пожалуйста, порекомендуйте 5 фильмов, которые подходят его настроению, и укажите только название фильма. Ответ должен быть на русском языке.`;
+      const prompt = `Foydalanuvchi ${translations[language][`option${genrePreference.charAt(0).toUpperCase() + genrePreference.slice(1)}`]} janridagi filmlarni yoqtiradi. `
+        + `U filmlarni ${translations[language][`option${watchingPreference.charAt(0).toUpperCase() + watchingPreference.slice(1)}`]} tomosha qilishni afzal ko‘radi. `
+        + `Hozir u o‘zini ${translations[language][`option${mood.charAt(0).toUpperCase() + mood.slice(1)}`]} his qilmoqda. `
+        + `Bugun uning kuni ${translations[language][`option${dayType.charAt(0).toUpperCase() + dayType.slice(1)}`]} o‘tdi. `
+        + `U ${translations[language][`option${socialPreference.charAt(0).toUpperCase() + socialPreference.slice(1)}`]}ni afzal ko‘radi va o‘zini ${translations[language][`option${energyPreference.charAt(0).toUpperCase() + energyPreference.slice(1)}`]} energiyasi bilan to‘ldirmoqchi. `
+        + `5 ta TURli filmlar tavsiya qiling, har biri turli yillar va kichik janrlardan bo‘lsin. `
+        + `Faqat nomlarni yangi qatordan yozing. Takrorlanishlardan saqlaning va mashhur blokbasterlardan qoching. Misol:\n1. "Назад в будущее"\n2. "Достучаться до небес"...`;
 
       const res = await axios.post(
         `${API_BASE_URL}/chat/completions`,
         {
           model: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
           messages: [{ role: "user", content: prompt }],
-          max_tokens: 900,
+          temperature: 0.7,
+          max_tokens: 500,
         },
         {
           headers: {
@@ -341,64 +426,63 @@ function App() {
         }
       );
 
-      const cleanedResponse = res.data.choices[0].message.content.replace(/<think>[\s\S]*?<\/think>/g, '');
-      const filmNames = cleanedResponse
+      const cleanedResponse = res.data.choices[0].message.content
+        .replace(/<think>[\s\S]*?<\/think>/g, '')
+        .replace(/\d+\.\s*/g, '')
         .split('\n')
-        .filter(line => line.trim() !== '')
-        .map(line => getFilmNameOnly(line))
-        .slice(0, 5); // Faqat 5 ta filmni olish
+        .map(line => line.trim())
+        .filter(line => line.length > 2 && !line.startsWith("Foydalanuvchi"))
+        .slice(0, 5);
 
-      const formattedRecommendations = (await Promise.all(
-        filmNames.map(async (name) => {
-          const movieDetails = await fetchMovieDetails(name);
-          return movieDetails ? { name, details: movieDetails } : null;
+      const recommendations = await Promise.all(
+        cleanedResponse.map(async (name) => {
+          let retries = 2;
+          while (retries > 0) {
+            const details = await fetchMovieDetails(name);
+            if (details) return details;
+            retries--;
+          }
+          return null;
         })
-      )).filter(item => item !== null);
+      );
 
-      setResponse(formattedRecommendations);
+      let validRecommendations = recommendations.filter(r => r !== null);
+      if (validRecommendations.length < 5) {
+        const backup = await getBackupMovies();
+        validRecommendations = [
+          ...validRecommendations,
+          ...backup.slice(0, 5 - validRecommendations.length)
+        ];
+      }
+
+      const newIds = validRecommendations.map(m => m.id);
+      setUsedMovieIds(prev => new Set([...prev, ...newIds]));
+      setRecommendedMovies(prev => isMore ? [...prev, ...validRecommendations] : validRecommendations);
+      setOpenDialog(false);
     } catch (error) {
-      console.error('API error:', error.response ? error.response.data : error.message);
-      setResponse([{ name: translations[language].errorMessage + (error.response ? JSON.stringify(error.response.data) : error.message) }]);
+      console.error('API xatosi:', error);
+      setErrorMessage(translations[language].errorMessage + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Keyingi qadamga o'tish
+  // Navigatsiya handlerlari
   const handleNext = () => {
-    if (step === 1 && !genrePreference) {
-      alert(translations[language].fillStep.replace('{step}', '1'));
-      return;
-    }
-    if (step === 2 && !watchingPreference) {
-      alert(translations[language].fillStep.replace('{step}', '2'));
-      return;
-    }
-    if (step === 3 && !mood) {
-      alert(translations[language].fillStep.replace('{step}', '3'));
-      return;
-    }
-    if (step === 4 && !dayType) {
-      alert(translations[language].fillStep.replace('{step}', '4'));
-      return;
-    }
-    if (step === 5 && !socialPreference) {
-      alert(translations[language].fillStep.replace('{step}', '5'));
-      return;
-    }
-    if (step === 6 && !energyPreference) {
-      alert(translations[language].fillStep.replace('{step}', '6'));
-      return;
-    }
+    if (step === 1 && !genrePreference) return alert(translations[language].fillStep.replace('{step}', '1'));
+    if (step === 2 && !watchingPreference) return alert(translations[language].fillStep.replace('{step}', '2'));
+    if (step === 3 && !mood) return alert(translations[language].fillStep.replace('{step}', '3'));
+    if (step === 4 && !dayType) return alert(translations[language].fillStep.replace('{step}', '4'));
+    if (step === 5 && !socialPreference) return alert(translations[language].fillStep.replace('{step}', '5'));
+    if (step === 6 && !energyPreference) return alert(translations[language].fillStep.replace('{step}', '6'));
     if (step < 6) setStep(step + 1);
   };
 
-  // Orqaga qaytish
   const handleBack = () => {
     if (step > 1) setStep(step - 1);
   };
 
-  // Qadam kontentini ko'rsatish
+  // Bosqich kontentini render qilish
   const renderStepContent = () => {
     const question = questions[step - 1];
     const currentValue =
@@ -410,37 +494,88 @@ function App() {
       step === 6 ? energyPreference : '';
 
     return (
-      <FormControl component="fieldset" sx={{ mb: 3, width: '100%' }}>
-        <FormLabel component="legend" sx={{ color: 'white', mb: 2, fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 'bold' }}>
-          {question.text}
-        </FormLabel>
-        <RadioGroup
-          value={currentValue}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (step === 1) setGenrePreference(val);
-            else if (step === 2) setWatchingPreference(val);
-            else if (step === 3) setMood(val);
-            else if (step === 4) setDayType(val);
-            else if (step === 5) setSocialPreference(val);
-            else if (step === 6) setEnergyPreference(val);
-          }}
-          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-        >
-          {question.options.map((option, index) => (
-            <FormControlLabel
-              key={index}
-              value={option.value}
-              control={<Radio sx={{ color: 'white' }} />}
-              label={
-                <Typography sx={{ color: 'white', fontSize: isMobile ? '0.9rem' : '1rem' }}>
-                  {option.label}
-                </Typography>
-              }
-            />
-          ))}
-        </RadioGroup>
-      </FormControl>
+      <Fade in={true} key={step} timeout={300}>
+        <FormControl component="fieldset" sx={{ mb: 3, width: '100%' }}>
+          <Typography sx={{ color: 'white', mb: 2, fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 'bold' }}>
+            {`${translations[language].question} ${step} ${translations[language].of} 6`}
+          </Typography>
+          <FormLabel component="legend" sx={{ color: 'white', mb: 2, fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 'bold' }}>
+            {question.text}
+          </FormLabel>
+          <RadioGroup
+            value={currentValue}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (step === 1) setGenrePreference(val);
+              else if (step === 2) setWatchingPreference(val);
+              else if (step === 3) setMood(val);
+              else if (step === 4) setDayType(val);
+              else if (step === 5) setSocialPreference(val);
+              else if (step === 6) setEnergyPreference(val);
+            }}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+          >
+            {question.options.map((option, index) => (
+              <FormControlLabel
+                key={index}
+                value={option.value}
+                control={<Radio sx={{ color: 'white' }} />}
+                label={<Typography sx={{ color: 'white', fontSize: isMobile ? '0.9rem' : '1rem' }}>{option.label}</Typography>}
+                aria-label={option.label}
+              />
+            ))}
+          </RadioGroup>
+        </FormControl>
+      </Fade>
+    );
+  };
+
+  // Film kartasini render qilish
+  const renderMovieCard = (item, index) => {
+    const isFavorite = favorites.some(fav => fav.id === item.id);
+    return (
+      <Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex' }}>
+        <Paper elevation={3} sx={{ p: 2, borderRadius: 2, bgcolor: '#2C2C2C', color: 'white', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            {item.poster ? (
+              <Avatar variant="square" src={item.poster} sx={{ width: '100%', height: 200, borderRadius: 2, objectFit: 'cover' }} alt={item.name} />
+            ) : (
+              <Avatar sx={{ width: '100%', height: 200, borderRadius: 2 }}><MovieIcon fontSize="large" /></Avatar>
+            )}
+            <Typography sx={{ color: 'white', fontWeight: 'bold', fontSize: isMobile ? '0.9rem' : '1rem', mb: 1, textAlign: 'center' }}>
+              {item.name} {item.rating !== 'N/A' && `(${item.rating})`}
+            </Typography>
+            <Box sx={{ textAlign: 'left', width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <CalendarTodayIcon fontSize="small" />
+                <Typography variant="body2" color="#FFFFFF">{translations[language].year} {item.year || 'N/A'}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <LocalMoviesIcon fontSize="small" />
+                <Typography variant="body2" color="#FFFFFF">{translations[language].genres} {item.genres.join(', ') || 'N/A'}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <PeopleIcon fontSize="small" />
+                <Typography variant="body2" color="#FFFFFF">{translations[language].actors} {item.actors || 'N/A'}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <DescriptionIcon fontSize="small" />
+                <Typography variant="body2" color="#FFFFFF">{translations[language].description} {item.description || 'N/A'}</Typography>
+              </Box>
+            </Box>
+            {item.link && (
+              <Typography variant="body2" color="#FFFFFF" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
+                <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ color: '#1565C0', textDecoration: 'none', fontWeight: 'bold' }}>
+                  Kinopoiskda ko‘rish
+                </a>
+              </Typography>
+            )}
+            <IconButton onClick={() => toggleFavorite(item)} sx={{ mt: 1, color: isFavorite ? '#FF4081' : 'white' }} aria-label={isFavorite ? translations[language].removeFromFavorites : translations[language].addToFavorites}>
+              {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+            </IconButton>
+          </Box>
+        </Paper>
+      </Grid>
     );
   };
 
@@ -450,10 +585,13 @@ function App() {
         <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
             <Typography variant="h6" component="span" sx={{ fontWeight: 'bold', color: 'white' }}>
-            <img width={120} height={40} src="./src/assets/VibeLy.png" alt="" />
+              <img width={120} height={40} src="./src/assets/VibeLy.png" alt="VibeLy logo" />
             </Typography>
           </Box>
-          <IconButton size="large" edge="end" color="inherit" aria-label="language" onClick={handleLanguageMenuOpen}>
+          <IconButton size="large" color="inherit" onClick={() => setShowFavorites(true)} aria-label={translations[language].favorites}>
+            <FavoriteIcon />
+          </IconButton>
+          <IconButton size="large" edge="end" color="inherit" onClick={handleLanguageMenuOpen}>
             <LanguageIcon />
           </IconButton>
           <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleLanguageMenuClose}>
@@ -466,131 +604,66 @@ function App() {
 
       <Container maxWidth="md" sx={{ mt: isMobile ? 5 : 15 }}>
         <Paper elevation={3} sx={{ p: isMobile ? 2 : 4, borderRadius: 2, bgcolor: '#1B1B1B', color: 'white' }}>
+          {/* Kundalik Tavsiyalar */}
+          {dailyMovies.length > 0 && !showFavorites && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'white', mb: 2 }}>{translations[language].dailyRecommendation}</Typography>
+              <Slider dots infinite speed={500} slidesToShow={1} slidesToScroll={1} autoplay autoplaySpeed={3000} cssEase="linear">
+                {dailyMovies.map((movie, index) => (
+                  <Box key={index} sx={{ textAlign: 'center' }}>
+                    <a href={movie.link} target="_blank" rel="noopener noreferrer">
+                      <Avatar variant="square" src={movie.poster} sx={{ width: '100%', height: 400, borderRadius: 2, objectFit: 'cover' }} alt={movie.name} />
+                      <Typography sx={{ mt: 2, color: 'white', fontWeight: 'bold' }}>{movie.name}</Typography>
+                    </a>
+                  </Box>
+                ))}
+              </Slider>
+            </Box>
+          )}
+
+          {/* Loyha haqida matn va AI tugmasi */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.5rem' : '2rem' }}>
-              {translations[language].appSubtitle}
-            </Typography>
+            <Typography variant="subtitle1" sx={{ color: 'white', mb: 2 }}>{translations[language].appSubtitle}</Typography>
+            <Button variant="contained" onClick={() => setOpenDialog(true)}>{translations[language].aiRecommendation}</Button>
           </Box>
 
-          {renderStepContent()}
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 5 }}>
-            <Button onClick={handleBack} disabled={step === 1} variant="outlined" sx={{ color: 'white', borderColor: '#1565C0' }}>
-              {translations[language].buttonBack}
-            </Button>
-            {step < 6 ? (
-              <Button onClick={handleNext} variant="contained">
-                {translations[language].buttonNext}
-              </Button>
-            ) : (
-              <Button onClick={generateRecommendations} disabled={loading} variant="contained">
-                {loading ? <CircularProgress size={24} /> : translations[language].buttonGetRecommendations}
-              </Button>
-            )}
-          </Box>
-
-          {response.length > 0 && (
-            <Box sx={{ mt: 4, p: isMobile ? 1 : 3, bgcolor: '#1B1B1B', borderRadius: 2 }}>
+          {/* Tavsiya qilingan filmlar */}
+          {recommendedMovies.length > 0 && (
+            <Box sx={{ mt: 4 }}>
               <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: 'white', fontSize: isMobile ? '1.2rem' : '1.5rem' }}>
                 {translations[language].recommendationsTitle}
               </Typography>
               <Grid container spacing={2}>
-                {response.map((item, index) => (
-                  <Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex' }}>
-                    <Paper elevation={3} sx={{ p: 2, borderRadius: 2, bgcolor: '#2C2C2C', color: 'white', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                        {item.details.poster ? (
-                          <Avatar
-                            variant="square"
-                            src={item.details.poster}
-                            sx={{ 
-                              width: '100%', 
-                              height: 200, // Rasm balandligini bir xil qilish
-                              borderRadius: 2,
-                              objectFit: 'cover', // Rasmni to'liq ko'rsatish
-                            }}
-                          />
-                        ) : (
-                          <Avatar sx={{ 
-                            width: '100%', 
-                            height: 200, // Rasm balandligini bir xil qilish
-                            borderRadius: 2,
-                          }}>
-                            {item.name.toLowerCase().includes("comedy") ? (
-                              <ComedyIcon fontSize="large" />
-                            ) : (
-                              <MovieIcon fontSize="large" />
-                            )}
-                          </Avatar>
-                        )}
-                        <Typography 
-                          sx={{ 
-                            color: 'white', 
-                            fontWeight: 'bold', 
-                            fontSize: isMobile ? '0.9rem' : '1rem',
-                            mb: 1,
-                            textAlign: 'center',
-                          }}
-                        >
-                          🎬{item.name}
-                        </Typography>
-                        <Box sx={{ textAlign: 'center', width: '100%' }}>
-                          <Typography 
-                            variant="body2" 
-                            color="#FFFFFF" 
-                            sx={{ display: 'block', mb: 0.5 }}
-                          >
-                            <strong>📅{translations[language].year}</strong> {item.details.year || 'N/A'}
-                          </Typography>
-                          <Typography 
-                            variant="body2" 
-                            color="#FFFFFF" 
-                            sx={{ display: 'block', mb: 0.5 }}
-                          >
-                            <strong>⭐{translations[language].genres}</strong> {Array.isArray(item.details.genres) ? item.details.genres.map(genre => genre.name).join(', ') : 'N/A'}
-                          </Typography>
-                          <Typography 
-                            variant="body2" 
-                            color="#FFFFFF" 
-                            sx={{ display: 'block', mb: 0.5 }}
-                          >
-                            <strong>{translations[language].actors}</strong> {item.details.actors || 'N/A'}
-                          </Typography>
-                          <Typography 
-                            variant="body2" 
-                            color="#FFFFFF" 
-                            sx={{ display: 'block', mb: 0.5 }}
-                          >
-                            <strong>{translations[language].description}</strong> {item.details.description || 'N/A'}
-                          </Typography>
-                          {item.details.link && (
-                            <Typography 
-                              variant="body2" 
-                              color="#FFFFFF" 
-                              sx={{ display: 'block', mt: 1 }}
-                            >
-                              <a
-                                href={item.details.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ 
-                                  color: '#1565C0', 
-                                  textDecoration: 'none',
-                                  fontWeight: 'bold',
-                                }}
-                              >
-                                Посмотреть на Кинопоиске
-                              </a>
-                            </Typography>
-                          )}
-                        </Box>
-                      </Box>
-                    </Paper>
-                  </Grid>
-                ))}
+                {recommendedMovies.map((item, index) => renderMovieCard(item, index))}
               </Grid>
+              <Box sx={{ textAlign: 'center', mt: 4 }}>
+                <Button variant="outlined" onClick={() => generateRecommendations(true)} disabled={loading}>
+                  {loading ? <CircularProgress size={24} /> : translations[language].moreRecommendations}
+                </Button>
+              </Box>
             </Box>
           )}
+
+          {/* Savollar dialogi */}
+          <Dialog
+            open={openDialog}
+            onClose={() => setOpenDialog(false)}
+            TransitionComponent={Fade}
+            PaperProps={{ sx: { bgcolor: '#2C2C2C', color: 'white' } }}
+          >
+            <DialogTitle>{translations[language].appSubtitle}</DialogTitle>
+            <DialogContent>{renderStepContent()}</DialogContent>
+            <DialogActions>
+              <Button onClick={handleBack} disabled={step === 1} sx={{ color: 'white' }}>{translations[language].buttonBack}</Button>
+              {step < 6 ? (
+                <Button onClick={handleNext} sx={{ color: 'white' }}>{translations[language].buttonNext}</Button>
+              ) : (
+                <Button onClick={() => generateRecommendations(false)} disabled={loading} sx={{ color: 'white' }}>
+                  {loading ? <CircularProgress size={24} /> : translations[language].buttonGetRecommendations}
+                </Button>
+              )}
+            </DialogActions>
+          </Dialog>
         </Paper>
       </Container>
     </Box>
