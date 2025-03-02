@@ -196,8 +196,9 @@ const translations = {
 };
 
 // API sozlamalari
-const API_KEY = '45cc22d90672cbbcdb905049fa3bc212d015130b3eddbb40a8c108f613b758a2';
-const API_BASE_URL = 'https://api.together.xyz/v1';
+const RAPIDAPI_URL = 'https://chatgpt-42.p.rapidapi.com/gpt4';
+const RAPIDAPI_KEY = '2ac44aca25msh901b0ec27b93167p121bacjsnba9e2c3ca446';
+const RAPIDAPI_HOST = 'chatgpt-42.p.rapidapi.com';
 const KINOPOISK_API_KEY = 'E032XGP-C0EMA2H-G0CSDZ5-SBAAESF';
 const KINOPOISK_API_URL = 'https://api.kinopoisk.dev/v1.3/movie';
 
@@ -229,7 +230,6 @@ function App() {
   const [openDialog, setOpenDialog] = useState(false);
   const [recommendedMovies, setRecommendedMovies] = useState([]);
   const [usedMovieIds, setUsedMovieIds] = useState(new Set());
-
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -365,7 +365,7 @@ function App() {
   // Kinopoiskdan film ma'lumotlarini olish
   const fetchMovieDetails = async (movieName) => {
     try {
-      const cleanedName = movieName.replace(/\*\*/g, '').replace(/"/g, '').trim();
+      const cleanedName = movieName.replace(/\*/g, '').replace(/"/g, '').trim();
       const filmNameOnly = getFilmNameOnly(cleanedName);
       const res = await axios.get(KINOPOISK_API_URL, {
         params: { name: filmNameOnly },
@@ -402,31 +402,49 @@ function App() {
     setLoading(true);
     setErrorMessage('');
     try {
-      const prompt = `Foydalanuvchi ${translations[language][`option${genrePreference.charAt(0).toUpperCase() + genrePreference.slice(1)}`]} janridagi filmlarni yoqtiradi. `
-        + `U filmlarni ${translations[language][`option${watchingPreference.charAt(0).toUpperCase() + watchingPreference.slice(1)}`]} tomosha qilishni afzal ko‘radi. `
-        + `Hozir u o‘zini ${translations[language][`option${mood.charAt(0).toUpperCase() + mood.slice(1)}`]} his qilmoqda. `
-        + `Bugun uning kuni ${translations[language][`option${dayType.charAt(0).toUpperCase() + dayType.slice(1)}`]} o‘tdi. `
-        + `U ${translations[language][`option${socialPreference.charAt(0).toUpperCase() + socialPreference.slice(1)}`]}ni afzal ko‘radi va o‘zini ${translations[language][`option${energyPreference.charAt(0).toUpperCase() + energyPreference.slice(1)}`]} energiyasi bilan to‘ldirmoqchi. `
-        + `5 ta TURli filmlar tavsiya qiling, har biri turli yillar va kichik janrlardan bo‘lsin. `
-        + `Faqat nomlarni yangi qatordan yozing. Takrorlanishlardan saqlaning va mashhur blokbasterlardan qoching. Misol:\n1. "Назад в будущее"\n2. "Достучаться до небес"...`;
+      const prompt = `Foydalanuvchi ${translations[language][`option${genrePreference.charAt(0).toUpperCase() + genrePreference.slice(1)}`]} janridagi filmlarni yoqtiradi. 
+        + U filmlarni ${translations[language][`option${watchingPreference.charAt(0).toUpperCase() + watchingPreference.slice(1)}`]} tomosha qilishni afzal ko‘radi. 
+        + Hozir u o‘zini ${translations[language][`option${mood.charAt(0).toUpperCase() + mood.slice(1)}`]} his qilmoqda. 
+        + Bugun uning kuni ${translations[language][`option${dayType.charAt(0).toUpperCase() + dayType.slice(1)}`]} o‘tdi. 
+        + U ${translations[language][`option${socialPreference.charAt(0).toUpperCase() + socialPreference.slice(1)}`]}ni afzal ko‘radi va o‘zini ${translations[language][`option${energyPreference.charAt(0).toUpperCase() + energyPreference.slice(1)}`]} energiyasi bilan to‘ldirmoqchi. 
+        + 5 ta TURli filmlar tavsiya qiling, har biri turli yillar va kichik janrlardan bo‘lsin. 
+        + Faqat nomlarni yangi qatordan yozing. Takrorlanishlardan saqlaning va mashhur blokbasterlardan qoching. Misol:\n1. "Назад в будущее"\n2. "Достучаться до небес"...`;
 
       const res = await axios.post(
-        `${API_BASE_URL}/chat/completions`,
+        RAPIDAPI_URL,
         {
-          model: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
-          max_tokens: 500,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          web_access: false
         },
         {
           headers: {
-            'Authorization': `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json',
-          },
+            'x-rapidapi-key': RAPIDAPI_KEY,
+            'x-rapidapi-host': RAPIDAPI_HOST,
+            'Content-Type': 'application/json'
+          }
         }
       );
 
-      const cleanedResponse = res.data.choices[0].message.content
+      // API javobini log qilish
+      console.log('API javobi:', res.data);
+
+      let responseText;
+      if (typeof res.data === 'string') {
+        responseText = res.data;
+      } else if (res.data.choices && res.data.choices[0] && res.data.choices[0].message && res.data.choices[0].message.content) {
+        responseText = res.data.choices[0].message.content;
+      } else if (res.data.result) {
+        responseText = res.data.result;
+      } else {
+        throw new Error('API javobining kutilmagan tuzilishi');
+      }
+
+      const cleanedResponse = responseText
         .replace(/<think>[\s\S]*?<\/think>/g, '')
         .replace(/\d+\.\s*/g, '')
         .split('\n')
@@ -477,7 +495,6 @@ function App() {
     if (step === 6 && !energyPreference) return alert(translations[language].fillStep.replace('{step}', '6'));
     if (step < 6) setStep(step + 1);
   };
-
   const handleBack = () => {
     if (step > 1) setStep(step - 1);
   };
@@ -555,7 +572,7 @@ function App() {
                 <Typography variant="body2" color="#FFFFFF">{translations[language].genres} {item.genres.join(', ') || 'N/A'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <PeopleIcon fontSize="small" />
+                <PeopleIcon fontsize="small" />
                 <Typography variant="body2" color="#FFFFFF">{translations[language].actors} {item.actors || 'N/A'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
